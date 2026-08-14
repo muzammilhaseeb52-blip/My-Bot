@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI BOT - Universal AI Chat</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            400: "#60a5fa",
+                            500: "#3b82f6",
+                            600: "#2563eb"
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #475569 transparent;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .message-content {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .sidebar-transition {
+            transition: transform 0.25s ease;
+        }
+
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+
+            30% {
+                transform: translateY(-5px);
+                opacity: 1;
+            }
+        }
+
+        .glass {
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-white overflow-hidden">
+
+    <!-- =========================
+         APP
+    ========================== -->
+
+    <div id="app" class="h-screen flex">
+
+        <!-- =========================
+             MOBILE OVERLAY
+        ========================== -->
+
+        <div
+            id="mobileOverlay"
+            class="hidden fixed inset-0 bg-black/60 z-30 md:hidden">
+        </div>
+
+        <!-- =========================
+             SIDEBAR
+        ========================== -->
+
+        <aside
+            id="sidebar"
+            class="sidebar-transition fixed md:relative z-40 md:z-auto
+                   w-72 h-full bg-slate-900 border-r border-slate-800
+                   -translate-x-full md:translate-x-0 flex flex-col">
+
+            <!-- Logo -->
+
+            <div class="p-4 border-b border-slate-800">
+
+                <div class="flex items-center justify-between">
+
+                    <div class="flex items-center gap-3">
+
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600
+                                   flex items-center justify-center shadow-lg">
+
+                            <span class="text-xl">🤖</span>
+
+                        </div>
+
+                        <div>
+                            <h1 class="font-bold text-lg">AI BOT</h1>
+                            <p class="text-xs text-slate-400">
+                                Universal AI Assistant
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <button
+                        id="closeSidebarBtn"
+                        class="md:hidden text-slate-400 hover:text-white text-xl">
+                        ✕
+                    </button>
+
+                </div>
+
+            </div>
+
+            <!-- New Chat -->
+
+            <div class="p-3">
+
+                <button
+                    id="newChatBtn"
+                    class="w-full py-3 px-4 rounded-xl
+                           bg-blue-600 hover:bg-blue-500
+                           transition font-semibold
+                           flex items-center justify-center gap-2">
+
+                    <span>＋</span>
+                    New Chat
+
+                </button>
+
+            </div>
+
+            <!-- History title -->
+
+            <div class="px-4 py-2">
+
+                <p class="text-xs uppercase tracking-wider text-slate-500">
+                    Chat History
+                </p>
+
+            </div>
+
+            <!-- History -->
+
+            <div
+                id="chatHistory"
+                class="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
+
+            </div>
+
+            <!-- Sidebar bottom -->
+
+            <div class="p-3 border-t border-slate-800">
+
+                <button
+                    id="settingsBtn"
+                    class="w-full px-4 py-3 rounded-xl
+                           hover:bg-slate-800 transition
+                           flex items-center gap-3 text-slate-300">
+
+                    <span>⚙️</span>
+                    <span>Settings</span>
+
+                </button>
+
+                <div class="mt-3 text-center text-xs text-slate-600">
+                    AI BOT • Static Web App
+                </div>
+
+            </div>
+
+        </aside>
+
+
+        <!-- =========================
+             MAIN AREA
+        ========================== -->
+
+        <main class="flex-1 min-w-0 flex flex-col h-full">
+
+            <!-- HEADER -->
+
+            <header
+                class="h-16 flex items-center justify-between
+                       px-4 border-b border-slate-800
+                       bg-slate-950/90 glass">
+
+                <div class="flex items-center gap-3">
+
+                    <button
+                        id="openSidebarBtn"
+                        class="md:hidden w-10 h-10 rounded-lg
+                               hover:bg-slate-800 text-xl">
+
+                        ☰
+
+                    </button>
+
+                    <div>
+
+                        <h2 class="font-semibold">
+                            AI BOT
+                        </h2>
+
+                        <p
+                            id="modelStatus"
+                            class="text-xs text-slate-500">
+                            No model configured
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <button
+                    id="headerSettingsBtn"
+                    class="w-10 h-10 rounded-lg
+                           hover:bg-slate-800
+                           flex items-center justify-center">
+
+                    ⚙️
+
+                </button>
+
+            </header>
+
+
+            <!-- =========================
+                 CHAT AREA
+            ========================== -->
+
+            <section
+                id="chatContainer"
+                class="flex-1 overflow-y-auto">
+
+                <div
+                    id="messages"
+                    class="max-w-4xl mx-auto px-4 py-8">
+
+                </div>
+
+            </section>
+
+
+            <!-- =========================
+                 INPUT
+            ========================== -->
+
+            <div class="border-t border-slate-800 bg-slate-950">
+
+                <div class="max-w-4xl mx-auto p-4">
+
+                    <form
+                        id="chatForm"
+                        class="relative">
+
+                        <textarea
+                            id="messageInput"
+                            rows="1"
+                            placeholder="Message AI BOT..."
+                            autocomplete="off"
+                            class="w-full resize-none rounded-2xl
+                                   bg-slate-900
+                                   border border-slate-700
+                                   focus:border-blue-500
+                                   focus:ring-2 focus:ring-blue-500/20
+                                   outline-none
+                                   px-5 py-4 pr-14
+                                   text-white
+                                   placeholder-slate-500">
+                        </textarea>
+
+                        <button
+                            id="sendBtn"
+                            type="submit"
+                            class="absolute right-3 bottom-3
+                                   w-10 h-10 rounded-xl
+                                   bg-blue-600 hover:bg-blue-500
+                                   disabled:bg-slate-700
+                                   disabled:cursor-not-allowed
+                                   flex items-center justify-center
+                                   transition">
+
+                            ➤
+
+                        </button>
+
+                    </form>
+
+                    <p class="text-center text-xs text-slate-600 mt-3">
+                        AI BOT can make mistakes. Check important information.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+    <!-- =========================
+         SETTINGS MODAL
+    ========================== -->
+
+    <div
+        id="settingsModal"
+        class="hidden fixed inset-0 z-50
+               bg-black/70 backdrop-blur-sm
+               flex items-center justify-center p-4">
+
+        <div
+            class="w-full max-w-md
+                   bg-slate-900
+                   border border-slate-700
+                   rounded-2xl shadow-2xl">
+
+            <!-- Modal header -->
+
+            <div
+                class="flex items-center justify-between
+                       p-5 border-b border-slate-800">
+
+                <div>
+
+                    <h2 class="text-xl font-bold">
+                        Settings
+                    </h2>
+
+                    <p class="text-sm text-slate-500">
+                        Configure your AI BOT
+                    </p>
+
+                </div>
+
+                <button
+                    id="closeSettingsBtn"
+                    class="text-slate-400 hover:text-white text-xl">
+
+                    ✕
+
+                </button>
+
+            </div>
+
+
+            <!-- Modal body -->
+
+            <div class="p-5 space-y-5">
+
+                <!-- API Key -->
+
+                <div>
+
+                    <label
+                        class="block text-sm font-medium mb-2">
+                        OpenRouter API Key
+                    </label>
+
+                    <input
+                        id="apiKeyInput"
+                        type="password"
+                        placeholder="sk-or-v1-..."
+                        class="w-full px-4 py-3 rounded-xl
+                               bg-slate-950
+                               border border-slate-700
+                               focus:border-blue-500
+                               outline-none">
+
+                    <p class="text-xs text-slate-500 mt-2">
+                        Your key is saved only in this browser's LocalStorage.
+                    </p>
+
+                </div>
+
+
+                <!-- Model -->
+
+                <div>
+
+                    <label
+                        class="block text-sm font-medium mb-2">
+                        Custom Model Name
+                    </label>
+
+                    <input
+                        id="modelInput"
+                        type="text"
+                        placeholder="openai/gpt-4o-mini"
+                        class="w-full px-4 py-3 rounded-xl
+                               bg-slate-950
+                               border border-slate-700
+                               focus:border-blue-500
+                               outline-none">
+
+                    <p class="text-xs text-slate-500 mt-2">
+                        Enter any model supported by your OpenRouter account.
+                    </p>
+
+                </div>
+
+
+                <!-- System prompt -->
+
+                <div>
+
+                    <label
+                        class="block text-sm font-medium mb-2">
+                        AI Personality
+                    </label>
+
+                    <textarea
+                        id="systemPromptInput"
+                        rows="4"
+                        class="w-full px-4 py-3 rounded-xl
+                               bg-slate-950
+                               border border-slate-700
+                               focus:border-blue-500
+                               outline-none">You are AI BOT, a helpful, friendly and intelligent universal AI assistant. Answer questions clearly and accurately. You can communicate in any language requested by the user.</textarea>
+
+                </div>
+
+            </div>
+
+
+            <!-- Modal footer -->
+
+            <div
+                class="p-5 border-t border-slate-800
+                       flex gap-3 justify-end">
+
+                <button
+                    id="clearSettingsBtn"
+                    class="px-4 py-2 rounded-xl
+                           bg-red-600/20
+                           text-red-400
+                           hover:bg-red-600/30">
+
+                    Clear
+
+                </button>
+
+                <button
+                    id="saveSettingsBtn"
+                    class="px-5 py-2 rounded-xl
+                           bg-blue-600 hover:bg-blue-500
+                           font-semibold">
+
+                    Save Settings
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         SCRIPT
+         At the end of BODY
+    ========================== -->
+
+    <script>
+
+        /* =====================================
+           STORAGE KEYS
+        ===================================== */
+
+        const STORAGE = {
+            chats: "ai_bot_chats",
+            apiKey: "ai_bot_api_key",
+            model: "ai_bot_model",
+            systemPrompt: "ai_bot_system_prompt"
+        };
+
+
+        /* =====================================
+           DEFAULT SETTINGS
+        ===================================== */
+
+        const DEFAULT_MODEL = "openai/gpt-4o-mini";
+
+        const DEFAULT_SYSTEM_PROMPT =
+            "You are AI BOT, a helpful, friendly and intelligent universal AI assistant. Answer questions clearly and accurately. You can communicate in any language requested by the user.";
+
+
+        /* =====================================
+           DOM ELEMENTS
+        ===================================== */
+
+        const messages = document.getElementById("messages");
+
+        const messageInput =
+            document.getElementById("messageInput");
+
+        const chatForm =
+            document.getElementById("chatForm");
+
+        const sendBtn =
+            document.getElementById("sendBtn");
+
+        const chatHistory =
+            document.getElementById("chatHistory");
+
+        const settingsModal =
+            document.getElementById("settingsModal");
+
+        const apiKeyInput =
+            document.getElementById("apiKeyInput");
+
+        const modelInput =
+            document.getElementById("modelInput");
+
+        const systemPromptInput =
+            document.getElementById("systemPromptInput");
+
+        const modelStatus =
+            document.getElementById("modelStatus");
+
+        const sidebar =
+            document.getElementById("sidebar");
+
+        const mobileOverlay =
+            document.getElementById("mobileOverlay");
+
+
+        /* =====================================
+           STATE
+        ===================================== */
+
+        let chats =
+            JSON.parse(
+                localStorage.getItem(STORAGE.chats) || "[]"
+            );
+
+        let currentChatId = null;
+
+        let isGenerating = false;
+
+
+        /* =====================================
+           SETTINGS
+        ===================================== */
+
+        function getSettings() {
+
+            return {
+
+                apiKey:
+                    localStorage.getItem(STORAGE.apiKey) || "",
+
+                model:
+                    localStorage.getItem(STORAGE.model)
+                    || DEFAULT_MODEL,
+
+                systemPrompt:
+                    localStorage.getItem(STORAGE.systemPrompt)
+                    || DEFAULT_SYSTEM_PROMPT
+
+            };
+
+        }
+
+
+        function loadSettingsIntoForm() {
+
+            const settings = getSettings();
+
+            apiKeyInput.value =
+                settings.apiKey;
+
+            modelInput.value =
+                settings.model;
+
+            systemPromptInput.value =
+                settings.systemPrompt;
+
+            updateModelStatus();
+
+        }
+
+
+        function updateModelStatus() {
+
+            const settings = getSettings();
+
+            if (settings.apiKey) {
+
+                modelStatus.textContent =
+                    settings.model;
+
+                modelStatus.className =
+                    "text-xs text-green-400";
+
+            } else {
+
+                modelStatus.textContent =
+                    "API key not configured";
+
+                modelStatus.className =
+                    "text-xs text-yellow-500";
+
+            }
+
+        }
+
+
+        /* =====================================
+           SAVE SETTINGS
+        ===================================== */
+
+        function saveSettings() {
+
+            const apiKey =
+                apiKeyInput.value.trim();
+
+            const model =
+                modelInput.value.trim()
+                || DEFAULT_MODEL;
+
+            const systemPrompt =
+                systemPromptInput.value.trim()
+                || DEFAULT_SYSTEM_PROMPT;
+
+            localStorage.setItem(
+                STORAGE.apiKey,
+                apiKey
+            );
+
+            localStorage.setItem(
+                STORAGE.model,
+                model
+            );
+
+            localStorage.setItem(
+                STORAGE.systemPrompt,
+                systemPrompt
+            );
+
+            updateModelStatus();
+
+            closeSettings();
+
+            alert("Settings saved successfully.");
+
+        }
+
+
+        /* =====================================
+           CLEAR SETTINGS
+        ===================================== */
+
+        function clearSettings() {
+
+            if (
+                !confirm(
+                    "Clear API key and AI settings?"
+                )
+            ) return;
+
+            localStorage.removeItem(
+                STORAGE.apiKey
+            );
+
+            localStorage.removeItem(
+                STORAGE.model
+            );
+
+            localStorage.removeItem(
+                STORAGE.systemPrompt
+            );
+
+            loadSettingsIntoForm();
+
+        }
+
+
+        /* =====================================
+           SETTINGS MODAL
+        ===================================== */
+
+        function openSettings() {
+
+            loadSettingsIntoForm();
+
+            settingsModal.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        function closeSettings() {
+
+            settingsModal.classList.add(
+                "hidden"
+            );
+
+        }
+
+
+        /* =====================================
+           SIDEBAR
+        ===================================== */
+
+        function openSidebar() {
+
+            sidebar.classList.remove(
+                "-translate-x-full"
+            );
+
+            mobileOverlay.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        function closeSidebar() {
+
+            sidebar.classList.add(
+                "-translate-x-full"
+            );
+
+            mobileOverlay.classList.add(
+                "hidden"
+            );
+
+        }
+
+
+        /* =====================================
+           CHAT MANAGEMENT
+        ===================================== */
+
+        function saveChats() {
+
+            localStorage.setItem(
+                STORAGE.chats,
+                JSON.stringify(chats)
+            );
+
+        }
+
+
+        function createNewChat() {
+
+            const chat = {
+
+                id:
+                    Date.now().toString(),
+
+                title:
+                    "New Chat",
+
+                messages: [],
+
+                createdAt:
+                    new Date().toISOString()
+
+            };
+
+            chats.unshift
